@@ -1,0 +1,22 @@
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Datasets and generated models
+data/raw/
+data/processed/
+*.pkl
+
+# Operating system
+.DS_Store
+Thumbs.db
