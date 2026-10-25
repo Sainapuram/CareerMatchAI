@@ -1,0 +1,16 @@
+Candidate ID,Rank,O*NET-SOC Code,Title,Similarity Score
+C001,1,15-2051.00,Data Scientists,0.665136185480897
+C001,2,29-1141.00,Registered Nurses,0.0
+C001,3,13-2011.00,Accountants and Auditors,0.0
+C001,4,15-1212.00,Information Security Analysts,0.0
+C001,5,15-1252.00,Software Developers,0.0
+C002,1,15-1252.00,Software Developers,0.7433872264146171
+C002,2,29-1141.00,Registered Nurses,0.0
+C002,3,13-2011.00,Accountants and Auditors,0.0
+C002,4,15-1212.00,Information Security Analysts,0.0
+C002,5,15-2051.00,Data Scientists,0.0
+C003,1,15-1212.00,Information Security Analysts,0.5000000000000001
+C003,2,29-1141.00,Registered Nurses,0.0
+C003,3,13-2011.00,Accountants and Auditors,0.0
+C003,4,15-1252.00,Software Developers,0.0
+C003,5,15-2051.00,Data Scientists,0.0
