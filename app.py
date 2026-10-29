@@ -14,6 +14,7 @@ from src.matching import (
     recommend_careers,
 )
 from src.skill_gap import analyze_skill_gap
+from career_resources import learning_resources, official_employer_portals
 
 
 # ==========================================
@@ -1188,7 +1189,6 @@ else:
                                 "small example, and add the skill to your "
                                 "profile only when you can demonstrate it."
                             )
-                            show_learning_resources(skill)
                 else:
                     st.info(
                         "No unmatched essential skill topics were identified. "
@@ -1202,11 +1202,42 @@ else:
                     + quote(str(selected_code), safe=".-")
                 )
                 st.link_button("View O*NET occupation profile", occupation_url)
+
+                # --------------------------------------
+                # LEARNING AND EMPLOYER DISCOVERY
+                # --------------------------------------
+                st.markdown("### Learning Resources and Employer Career Portals")
                 st.caption(
-                    "Course links are searches, not individually reviewed "
-                    "certifications or endorsements. Official employer "
-                    "vacancies are not yet integrated."
+                    "These are topic searches and official employer career portals, "
+                    "not verified certifications or currently available vacancies."
                 )
+
+                st.markdown("#### Learning resources for your selected career")
+                topics = suggested if suggested else essential_names[:3]
+                resource_groups = learning_resources(topics, max_skills=3)
+                if resource_groups:
+                    for group in resource_groups:
+                        st.markdown(f"**{group['topic']}**")
+                        for resource in group["resources"]:
+                            st.link_button(
+                                f"Search {resource['provider']} for {group['topic']}",
+                                resource["url"],
+                            )
+                else:
+                    st.info("No O*NET learning topics are available for this occupation.")
+
+                st.markdown("#### Explore official employer career websites")
+                st.caption(
+                    "These employer portals are general starting points. "
+                    "They are not matched or verified job openings, and they do not "
+                    "establish sponsorship or work-authorization eligibility. "
+                    "Review each individual vacancy on the employer's website."
+                )
+                for employer in official_employer_portals():
+                    st.link_button(
+                        f"Explore {employer['employer']} careers",
+                        employer["url"],
+                    )
 
         except (
             KeyError,
