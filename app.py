@@ -14,6 +14,7 @@ from src.matching import (
     recommend_careers,
 )
 from src.skill_gap import analyze_skill_gap
+from ollama_advisor import show_ai_advisor
 from career_resources import learning_resources, official_employer_portals
 
 
@@ -1202,6 +1203,18 @@ else:
                     + quote(str(selected_code), safe=".-")
                 )
                 st.link_button("View O*NET occupation profile", occupation_url)
+                show_ai_advisor(
+                    confirmed_skills=confirmed_skills,
+                    career_goal=career_goal,
+                    current_career=current_career,
+                    target_career=target_career,
+                    career_interests=career_interests,
+                    learning_hours=learning_hours,
+                    occupation=occupation,
+                    essential_skills=essential_names,
+                    software_skills=software_names,
+                    onet_url=occupation_url,
+                )
 
                 # --------------------------------------
                 # LEARNING AND EMPLOYER DISCOVERY
