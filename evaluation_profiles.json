@@ -1,0 +1,38 @@
+
+{
+  "evaluation_version": "1.0",
+  "dataset_type": "synthetic_candidate_profiles",
+  "label_status": "provisional",
+  "profiles": [
+    {
+      "id": "P1",
+      "category": "Data Science",
+      "skills": ["Python", "SQL", "Machine Learning", "Statistics"],
+      "relevant_occupation_codes": ["15-2051.00"]
+    },
+    {
+      "id": "P2",
+      "category": "Business Analytics",
+      "skills": ["Excel", "SQL", "Power BI", "Tableau"],
+      "relevant_occupation_codes": ["15-2051.01"]
+    },
+    {
+      "id": "P3",
+      "category": "Software Development",
+      "skills": ["Python", "Java", "Git", "Docker"],
+      "relevant_occupation_codes": ["15-1252.00"]
+    },
+    {
+      "id": "P4",
+      "category": "Cybersecurity",
+      "skills": ["Python", "Linux", "Network Security", "Vulnerability Assessment"],
+      "relevant_occupation_codes": ["15-1212.00"]
+    },
+    {
+      "id": "P5",
+      "category": "Database Management",
+      "skills": ["SQL", "MySQL", "Oracle Database", "Database Administration"],
+      "relevant_occupation_codes": ["15-1242.00"]
+    }
+  ]
+}

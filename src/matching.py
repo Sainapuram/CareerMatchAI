@@ -69,7 +69,8 @@ def build_tfidf_model(occupation_profiles_df):
 
     vectorizer = TfidfVectorizer(
         lowercase=True,
-        stop_words="english"
+        stop_words="english",
+        ngram_range=(1, 2)
     )
 
     occupation_matrix = vectorizer.fit_transform(
