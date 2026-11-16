@@ -11,6 +11,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from src.matching import load_occupation_profiles
+from src.resume_profile import extract_resume_sections
 
 ESCO_CSV = Path(__file__).resolve().parent / 'data' / 'raw' / 'esco' / 'skills_en.csv'
 TOKEN_PATTERN = re.compile(r"[\w]+(?:[.+#-][\w]+)*|[+#]+", re.UNICODE)
@@ -167,6 +168,31 @@ def extract_skills(text, skill_index):
     names = {normalize_skill(item['skill']): item['skill']
              for kind in ('direct', 'suggested') for item in result[kind]}
     return sorted(names.values(), key=str.casefold)
+
+
+def extract_resume_skills_with_evidence(resume_text, skill_index):
+    """
+    Extract skill candidates from relevant resume sections.
+
+    Excludes contact information and education from this
+    initial skill-matching pass.
+    """
+    sections = extract_resume_sections(resume_text)
+
+    included_sections = [
+        "summary",
+        "skills",
+        "work_experience",
+        "projects",
+        "certifications",
+    ]
+
+    search_text = "\n".join(
+        "\n".join(sections[section])
+        for section in included_sections
+    )
+
+    return extract_skills_with_evidence(search_text, skill_index)
 
 
 if __name__ == '__main__':

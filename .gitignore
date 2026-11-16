@@ -26,3 +26,8 @@ Thumbs.db
 
 # Local backup files
 app_broken_backup.py
+
+.streamlit/secrets.toml
+.env
+__pycache__/
+.venv/

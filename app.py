@@ -1,6 +1,8 @@
 import re
 import html
 import hashlib
+import os
+import json
 from urllib.parse import quote
 import streamlit as st
 from docx import Document
@@ -11,7 +13,11 @@ from ollama_advisor import show_ai_advisor
 from career_resources import learning_resources, official_employer_portals
 from certification_recommender import select_certification
 from certification_catalog import CERTIFICATION_CATALOG
-from skill_extractor import build_skill_index, extract_skills_with_evidence
+from skill_extractor import build_skill_index, extract_resume_skills_with_evidence
+from src.resume_profile import build_candidate_profile
+from job_postings import fetch_live_jobs, rank_jobs_for_candidate
+
+
 # ==========================================
 # 1. PAGE CONFIGURATION
 # ==========================================
@@ -116,7 +122,7 @@ def get_skill_index():
     return build_skill_index(load_occupation_profiles())
 def detect_resume_skills(text):
     """Keep direct matches distinct from review-required ESCO aliases."""
-    return extract_skills_with_evidence(text, get_skill_index())
+    return extract_resume_skills_with_evidence(text, get_skill_index())
 def occupation_names(entries, field):
     """Extract unique O*NET names without changing source data."""
     names = []
@@ -166,6 +172,13 @@ if "career_matches" not in st.session_state:
 if "career_matches_skills" not in st.session_state:
     st.session_state.career_matches_skills = None
 
+if "live_jobs" not in st.session_state:
+    st.session_state.live_jobs = None
+if "live_jobs_errors" not in st.session_state:
+    st.session_state.live_jobs_errors = []
+if "live_jobs_key" not in st.session_state:
+    st.session_state.live_jobs_key = None
+
 if "approved_skill_equivalences" not in st.session_state:
     st.session_state.approved_skill_equivalences = set()
 
@@ -207,13 +220,13 @@ st.markdown(
     </div>
     <h1>CareerMatch AI</h1>
     <p>
-        Explore careers, see your skills, and find your next step.
+        Discover real jobs, understand skill gaps, and plan your next step.
     </p>
 </div>
 """,
     unsafe_allow_html=True,
 )
-st.markdown("**Follow these 3 steps.** Select a numbered tab to move between steps.")
+st.markdown("**Three steps:** Choose your goal, review your skills, and explore opportunities.")
 step1, step2, step3 = st.tabs([
     "1  ·  Your goal", "2  ·  Your skills", "3  ·  Your results"
 ])
@@ -327,6 +340,8 @@ with step2:
         label_visibility="collapsed",
     )
     extracted_skills = []
+    resume_direct_matches = []
+    resume_suggestions = []
     resume_text = ""
     if uploaded_file is not None:
         if uploaded_file.size > 5 * 1024 * 1024:
@@ -348,6 +363,15 @@ with step2:
             st.stop()
         if resume_text.strip():
             cleaned_resume = clean_resume_text(resume_text)
+            candidate_profile = build_candidate_profile(cleaned_resume)
+            with st.expander("View extracted résumé profile"):
+                for section, content in candidate_profile.items():
+                    st.markdown(f"**{section.replace('_', ' ').title()}**")
+                    if isinstance(content, list):
+                        for line in content:
+                            st.write(line)
+                    else:
+                        st.write(content)
             try:
                 extraction = detect_resume_skills(cleaned_resume)
             except (FileNotFoundError, ValueError, KeyError) as exc:
@@ -403,6 +427,9 @@ with step2:
         st.session_state.custom_skills = []
         st.session_state.profile_visible = False
         st.session_state.career_matches = None
+        st.session_state.career_matches_skills = None
+        st.session_state.live_jobs = None
+        st.session_state.live_jobs_key = None
     # ------------------------------------------
     # A. DIRECT RÉSUMÉ MATCHES
     # ------------------------------------------
@@ -991,6 +1018,181 @@ with step3:
                     )
                     with st.expander("Official O*NET career information"):
                         st.link_button("Open O*NET career profile", occupation_url)
+                    # Live search for the selected O*NET occupation, no employer CSV.
+                    st.markdown("### Top real job opportunities")
+                    st.caption(
+                        "Live Adzuna listings for the selected occupation. "
+                        "Results may be incomplete and application links may redirect. "
+                        "These are suggestions, not hiring predictions."
+                    )
+                    preferred_country = st.selectbox(
+                        "Preferred job country",
+                        ["United States", "United Kingdom", "Canada", "Australia"],
+                        key="preferred_job_country",
+                    )
+                    job_location = st.text_input(
+                        "Preferred city or region (optional)",
+                        placeholder="e.g., Dallas, TX; leave blank for countrywide search",
+                        key="preferred_job_location",
+                    )
+                    with st.expander("About our job sources"):
+                        st.caption(
+                            "Current job listings are requested from Adzuna when you "
+                            "click Search. No employers.csv is needed. "
+                            "Set ADZUNA_APP_ID and ADZUNA_APP_KEY in Streamlit secrets "
+                            "or environment variables. Descriptions may be shortened, "
+                            "so experience and skills need manual verification."
+                        )
+                    search_key = (
+                        preferred_country,
+                        job_location.strip().casefold(),
+                        str(selected_code),
+                        tuple(sorted(s.casefold() for s in confirmed_skills)),
+                        experience_years,
+                    )
+                    if st.session_state.live_jobs_key != search_key:
+                        st.session_state.live_jobs_key = search_key
+                        st.session_state.live_jobs = None
+                        st.session_state.live_jobs_errors = []
+
+                    if st.button(
+                        "Find my top jobs", type="primary",
+                        use_container_width=True, key="find_live_jobs"
+                    ):
+                        with st.spinner("Searching current job postings..."):
+                            retrieved, errors = fetch_live_jobs(
+                                occupation=str(occupation.get("Title", "")),
+                                country=preferred_country,
+                                location=job_location,
+                                max_results=50,
+                            )
+                            ranked = rank_jobs_for_candidate(
+                                retrieved, confirmed_skills, experience_years
+                            )
+                            # Exclude explicitly unmet experience requirements.
+                            # Do not treat unknown requirements as confirmed matches.
+                            ranked = [
+                                job for job in ranked
+                                if job["experience_status"] != "Below stated minimum"
+                            ]
+                            if experience_years < 2:
+                                ranked = [
+                                    job for job in ranked
+                                    if job["seniority_level"] not in ("Senior", "Advanced")
+                                ]
+                            # Prefer different employers; at most two roles per company.
+                            diverse_jobs = []
+                            employer_counts = {}
+                            for job in ranked:
+                                employer = job.get("company", "").strip().casefold()
+                                if employer_counts.get(employer, 0) >= 2:
+                                    continue
+                                diverse_jobs.append(job)
+                                employer_counts[employer] = employer_counts.get(employer, 0) + 1
+                                if len(diverse_jobs) == 5:
+                                    break
+                            st.session_state.live_jobs = {
+                                "top": diverse_jobs,
+                                "retrieved": len(retrieved),
+                            }
+                            st.session_state.live_jobs_errors = errors
+
+                    results = st.session_state.live_jobs
+                    if isinstance(results, dict):
+                        top_jobs = results["top"]
+                        st.write(
+                            f"**{len(top_jobs)} job suggestion(s)** from "
+                            f"{results['retrieved']} retrieved matching-title postings."
+                        )
+                        if not top_jobs:
+                            st.info(
+                                "No suitable postings were identified in this search. "
+                                "Try another occupation or location. "
+                                "This does not mean no jobs are available."
+                            )
+                        else:
+                            labels = []
+                            for number, job in enumerate(top_jobs, 1):
+                                labels.append(f"{number}. {job['title']} — {job['company']}")
+                                with st.container(border=True):
+                                    st.markdown(f"#### {number}. {job['title']}")
+                                    st.write(f"**{job['company']}** · {job['location']}")
+                                    st.caption(
+                                        f"Title: {job['match_type']} · "
+                                        f"Experience: {job['experience_status']} · "
+                                        f"Seniority: {job['seniority_level']}"
+                                    )
+                                    for notice in job.get("eligibility_notices", []):
+                                        st.caption("Eligibility: " + notice)
+                                    if job.get("matched_skills"):
+                                        st.write(
+                                            "Your skills mentioned in the available description: "
+                                            + ", ".join(job["matched_skills"][:8])
+                                        )
+                                    st.link_button("View job posting / apply", job["url"])
+
+                            st.markdown("### Your next learning step")
+                            chosen = st.selectbox(
+                                "Select a job to explore its skill gaps",
+                                range(len(top_jobs)),
+                                format_func=lambda i: labels[i],
+                                key="selected_job_for_gap",
+                            )
+                            selected_job = top_jobs[chosen]
+                            vocabulary = list(dict.fromkeys(
+                                essential_names + software_names + confirmed_skills
+                            ))
+                            mentioned = [
+                                skill for skill in vocabulary
+                                if isinstance(skill, str) and len(skill.strip()) >= 3
+                                and re.search(
+                                    r"(?<!\w)" + re.escape(skill.strip()) + r"(?!\w)",
+                                    selected_job.get("description", ""), re.I
+                                )
+                            ]
+                            selected_set = {s.casefold() for s in confirmed_skills}
+                            have = [s for s in mentioned if s.casefold() in selected_set]
+                            to_review = [s for s in mentioned if s.casefold() not in selected_set]
+                            if have:
+                                st.success("Skills you listed: " + ", ".join(have[:12]))
+                            if to_review:
+                                st.write(
+                                    "**Skills not evidenced in your profile:** "
+                                    + ", ".join(to_review[:12])
+                                )
+                            else:
+                                st.info("No additional skill-name gaps detected in the available excerpt.")
+                            st.caption(
+                                "Descriptions may be incomplete. Skill mentions may be "
+                                "optional; unlisted skills are not proven missing."
+                            )
+                            cert = select_certification(
+                                confirmed_skills, to_review, CERTIFICATION_CATALOG,
+                                approved_equivalences=st.session_state.approved_skill_equivalences,
+                            ) if to_review else None
+                            if cert:
+                                st.markdown("**One recommended learning resource**")
+                                st.write(f"{cert['name']} — {cert['provider']}")
+                                st.link_button(
+                                    "Official course or certification", cert["official_url"]
+                                )
+                            else:
+                                st.info(
+                                    "No documented credential overlap was found "
+                                    "in the existing catalog for this posting."
+                                )
+                        with st.expander("Matching limitations"):
+                            st.caption(
+                                "Search covers the results returned by Adzuna, not all "
+                                "openings. Title matching and skill mentions are heuristic; "
+                                "location, experience, eligibility and job status must be "
+                                "verified on the linked posting."
+                            )
+                    if st.session_state.live_jobs_errors:
+                        with st.expander("Live job search notices", expanded=True):
+                            for error in st.session_state.live_jobs_errors:
+                                st.warning(error)
+
                     st.markdown("### Ask your career advisor")
                     show_ai_advisor(
                         confirmed_skills=confirmed_skills,
