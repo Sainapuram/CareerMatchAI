@@ -4,7 +4,7 @@
 
 CareerMatchAI is a privacy-aware, skill-based career recommendation platform designed to help students and early-career job seekers identify suitable occupations, understand their existing skills, and explore opportunities for professional development.
 
-The project uses **O*NET occupational data and ESCO skills terminology** to support career exploration. It combines resume skill extraction, TF-IDF-based career matching, skill-gap analysis, certification recommendations, and career development resources through an interactive Streamlit application.
+The project uses **O*NET occupational data and ESCO skills terminology** to support career exploration. It combines resume skill extraction, TF-IDF-based career matching, skill-gap analysis, certification recommendations, live Adzuna job discovery, preliminary job eligibility notices, and career development resources through an interactive Streamlit application.
 
 The project was developed collaboratively as part of an academic research initiative.
 
@@ -48,6 +48,17 @@ The platform aims to provide interpretable, skill-based career recommendations a
 - Provides learning resources to support professional development.
 - Includes links to official employer career portals.
 
+### Live Job Discovery and Preliminary Eligibility Checks
+
+- Searches current job advertisements through the Adzuna API for a selected occupation and country.
+- Matches occupation titles, reduces repeated employer/title combinations, and ranks results using confirmed skill mentions and available experience signals.
+- Displays explicit job-description notices about U.S. citizenship, security clearance, work authorization, and sponsorship when detectable.
+- Labels requirements **Not verified** when the available description does not establish them.
+- Uses Adzuna redirect links; these are not guaranteed to be direct official employer application pages.
+- Live search requires personal Adzuna API credentials and an active API allowance. The optional search does not require `employers.csv`.
+
+Job descriptions may be shortened. A title match or keyword overlap does not establish suitability, eligibility, or hiring probability.
+
 ### AI Career Advisor
 
 - Includes an Ollama-based advisor module for additional career guidance.
@@ -68,6 +79,7 @@ These features are represented in the project code. Full end-to-end testing and 
 | Document processing | python-docx, pypdf |
 | Excel data loading | openpyxl |
 | Occupational data and terminology | O*NET, ESCO |
+| Live job search | Adzuna API, requests |
 | Optional AI advisor | Ollama |
 | Development | VS Code, Jupyter Notebook, Git, GitHub |
 
@@ -119,13 +131,16 @@ CareerMatchAI/
 │   ├── data_processing.py
 │   ├── matching.py
 │   ├── skill_gap.py
-│   └── sentence_bert_matcher.py
+│   ├── sentence_bert_matcher.py
+│   ├── live_job_matching.py
+│   └── resume_profile.py
 │
 ├── app.py
 ├── career_resources.py
 ├── certification_catalog.py
 ├── certification_recommender.py
 ├── ollama_advisor.py
+├── job_postings.py
 ├── skill_extractor.py
 ├── sentence_bert_matcher.py
 │
@@ -173,7 +188,7 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-The dependency file should include:
+The dependency file should include the application's required packages (verify the current `requirements.txt` before deployment), including:
 
 ```text
 streamlit
@@ -184,6 +199,7 @@ python-docx
 pypdf
 sentence-transformers
 openpyxl
+requests
 ```
 
 Package versions are not yet pinned. A clean-environment installation has not been fully verified.
@@ -255,6 +271,23 @@ Streamlit will display the local application address in the terminal.
 The application provides an interface for skill-based career exploration and its supporting features.
 
 Optional functionality may require additional configuration. In particular, the Ollama advisor may require a locally installed model and running Ollama service.
+
+### Configure optional live job search (Adzuna)
+
+1. Obtain an application ID and application key from [Adzuna Developer](https://developer.adzuna.com/). API availability and quotas depend on your account.
+2. Create `.streamlit/secrets.toml` in the project root with the following placeholders replaced by your own credentials:
+
+   ```toml
+   ADZUNA_APP_ID = "YOUR_APPLICATION_ID"
+   ADZUNA_APP_KEY = "YOUR_APPLICATION_KEY"
+   ```
+
+3. Confirm `.streamlit/secrets.toml` is listed in `.gitignore`; **never commit credentials or personal résumés**.
+4. Restart Streamlit and use the live job-search action after selecting an occupation.
+
+Environment variables named `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` are also supported. If deploying to a hosted Streamlit environment, configure credentials using that environment's secrets management; the local secrets file should not be uploaded.
+
+The application makes live API requests when searching. It does not guarantee five suitable jobs, and search results may be incomplete or repeated across cities.
 
 ## 9. Career Matching Methodology
 
@@ -334,6 +367,11 @@ Current limitations include:
 - Skill similarity does not independently establish job eligibility or hiring suitability.
 - Certification and career resource recommendations may require periodic review.
 - Optional AI guidance may require additional local configuration.
+- Adzuna job descriptions can be abbreviated, limiting experience and eligibility detection.
+- Citizenship, clearance, sponsorship, and work-authorization notices are preliminary text detections, not verified legal or hiring determinations.
+- Job-title matching and textual skill overlap do not prove a candidate meets job requirements.
+- The current job-skill gap display may surface overly broad terms; review suggestions critically.
+- Adzuna redirect URLs may lead through aggregators rather than directly to employers.
 - Complete clean-environment reproducibility testing remains outstanding.
 
 Future research may explore larger evaluation datasets, stronger skill normalization, improved ranking methods, and additional user-based validation.
@@ -393,6 +431,6 @@ https://www.sbert.net/
 
 ## 16. Project Status
 
-CareerMatchAI is an academic research prototype with an implemented Streamlit frontend, occupation matching modules, skill-gap functionality, and supporting career guidance components.
+CareerMatchAI is an academic research prototype with an implemented Streamlit frontend, occupation matching modules, skill-gap functionality, supporting career guidance components, and a locally tested Adzuna live job-search workflow with preliminary eligibility notices.
 
 The repository is being prepared for research documentation, reproducibility review, and academic submission.
