@@ -14,8 +14,11 @@ venv/
 
 # Datasets and generated models
 data/raw/
-data/processed/
+data/processed/*
 *.pkl
+
+# Allow only the processed O*NET occupation profiles
+!data/processed/occupation_profiles.pkl
 
 # Operating system
 .DS_Store
