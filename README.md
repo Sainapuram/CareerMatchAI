@@ -206,6 +206,25 @@ Package versions are not yet pinned. A clean-environment installation has not be
 
 ## 7. Dataset Preparation
 
+### ESCO Skill Vocabulary
+
+CareerMatch AI incorporates the European Skills, Competences, Qualifications and Occupations (ESCO) vocabulary to support résumé skill extraction.
+
+The application uses the English ESCO skills dataset (`skills_en.csv`) alongside O*NET-derived occupational skill and software terminology.
+
+**Implementation:**
+
+- **Data source:** ESCO (European Commission)
+- **Dataset:** `data/raw/esco/skills_en.csv`
+- **Processing module:** `skill_extractor.py`
+- **Purpose:** Identify skill terminology in candidate résumés to support career recommendations and skill-gap analysis.
+
+ESCO provides standardized skill terminology, while O*NET supplies occupational profiles used for career matching.
+
+**Official ESCO website:** https://esco.ec.europa.eu/
+
+The ESCO vocabulary file is included in the repository to support Streamlit Cloud deployment.
+
 ### Step 1 — Obtain the O*NET datasets
 
 The project expects the following Excel files:
@@ -257,25 +276,6 @@ The matching module loads this file using `pandas.read_pickle()`.
 Raw and processed data directories are excluded from Git tracking. Users must prepare these files locally.
 
 Only load pickle files from trusted sources.
-
-### ESCO Skill Vocabulary
-
-CareerMatch AI incorporates the European Skills, Competences, Qualifications and Occupations (ESCO) vocabulary to support résumé skill extraction.
-
-The application uses the English ESCO skills dataset (`skills_en.csv`) alongside O*NET-derived occupational skill and software terminology.
-
-**Implementation:**
-
-- **Data source:** ESCO (European Commission)
-- **Dataset:** `data/raw/esco/skills_en.csv`
-- **Processing module:** `skill_extractor.py`
-- **Purpose:** Identify skill terminology in candidate résumés to support career recommendations and skill-gap analysis.
-
-ESCO provides standardized skill terminology, while O*NET supplies occupational profiles used for career matching.
-
-**Official ESCO website:** https://esco.ec.europa.eu/
-
-The ESCO vocabulary file is included in the repository to support Streamlit Cloud deployment.
 
 ## 8. Running CareerMatchAI
 
