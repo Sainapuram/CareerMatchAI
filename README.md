@@ -258,6 +258,25 @@ Raw and processed data directories are excluded from Git tracking. Users must pr
 
 Only load pickle files from trusted sources.
 
+### ESCO Skill Vocabulary
+
+CareerMatch AI incorporates the European Skills, Competences, Qualifications and Occupations (ESCO) vocabulary to support résumé skill extraction.
+
+The application uses the English ESCO skills dataset (`skills_en.csv`) alongside O*NET-derived occupational skill and software terminology.
+
+**Implementation:**
+
+- **Data source:** ESCO (European Commission)
+- **Dataset:** `data/raw/esco/skills_en.csv`
+- **Processing module:** `skill_extractor.py`
+- **Purpose:** Identify skill terminology in candidate résumés to support career recommendations and skill-gap analysis.
+
+ESCO provides standardized skill terminology, while O*NET supplies occupational profiles used for career matching.
+
+**Official ESCO website:** https://esco.ec.europa.eu/
+
+The ESCO vocabulary file is included in the repository to support Streamlit Cloud deployment.
+
 ## 8. Running CareerMatchAI
 
 After installing dependencies and preparing the processed occupation profiles, launch the application from the project root:
