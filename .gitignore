@@ -8,15 +8,25 @@ venv/
 # Environment variables and secrets
 .env
 .env.*
+.streamlit/secrets.toml
 
 # Jupyter Notebook
 .ipynb_checkpoints/
 
-# Datasets and generated models
-data/raw/
-data/processed/
+# Raw datasets - allow only ESCO vocabulary
+data/raw/*
+!data/raw/esco/
+data/raw/esco/*
+!data/raw/esco/skills_en.csv
+
+# Processed datasets - allow only O*NET profiles
+data/processed/*
 *.pkl
+!data/processed/occupation_profiles.pkl
 
 # Operating system
 .DS_Store
 Thumbs.db
+
+# Local backup files
+app_broken_backup.py
